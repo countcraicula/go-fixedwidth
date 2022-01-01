@@ -1,8 +1,11 @@
-# fixedwidth [![GoDoc](https://godoc.org/github.com/ianlopshire/go-fixedwidth?status.svg)](http://godoc.org/github.com/ianlopshire/go-fixedwidth) [![Report card](https://goreportcard.com/badge/github.com/ianlopshire/go-fixedwidth)](https://goreportcard.com/report/github.com/ianlopshire/go-fixedwidth) [![Go Cover](http://gocover.io/_badge/github.com/ianlopshire/go-fixedwidth)](http://gocover.io/github.com/ianlopshire/go-fixedwidth)
+# fixedwidth [![GoDoc](https://pkg.go.dev/github.com/countcraicula/go-fixedwidth?status.svg)](http://pkg.go.dev/github.com/countcraicula/go-fixedwidth) [![Report card](https://goreportcard.com/badge/github.com/countcraicula/go-fixedwidth)](https://goreportcard.com/report/github.com/countcraicula/go-fixedwidth) [![Go Cover](http://gocover.io/_badge/github.com/countcraicula/go-fixedwidth)](http://gocover.io/github.com/countcraicula/go-fixedwidth)
 
 Package fixedwidth provides encoding and decoding for fixed-width formatted Data.
 
-`go get github.com/ianlopshire/go-fixedwidth`
+`go get github.com/countcraicula/go-fixedwidth`
+
+
+Forked from https://github.com/ianlopshire/go-fixedwidth
 
 ## Usage
 
@@ -17,6 +20,11 @@ The `alignment` argument controls the alignment of the value within it's interva
 The `padChar` argument controls the character that will be used to pad any empty characters in the interval after writing the value. The default padding character is a space. The `padChar` is optional and can be omitted.
 
 Fields without tags are ignored.
+
+### Custom Encoding
+
+If your type implements the TextMarshalerFixedWidth or TextUnmarshalerFixedWidth interfaces they will be used out of preference.
+If your type implements the encoding.TextMarshaler or encoding.TextUnmarshaler interfaces they will be used as second preference.
 
 ### Encode
 ```go
