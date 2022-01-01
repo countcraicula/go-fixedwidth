@@ -43,11 +43,12 @@ func ExampleUnmarshal() {
 func TestUnmarshal(t *testing.T) {
 	// allTypes contains a field with all current supported types.
 	type allTypes struct {
-		String          string          `fixed:"1,5"`
-		Int             int             `fixed:"6,10"`
-		Float           float64         `fixed:"11,15"`
-		TextUnmarshaler EncodableString `fixed:"16,20"`
-		Uint            uint            `fixed:"21,25"`
+		String                    string                    `fixed:"1,5"`
+		Int                       int                       `fixed:"6,10"`
+		Float                     float64                   `fixed:"11,15"`
+		TextUnmarshaler           EncodableString           `fixed:"16,20"`
+		Uint                      uint                      `fixed:"21,25"`
+		TextUnmarshalerFixedWidth EncodableFixedWidthString `fixed:"26,30"`
 	}
 	for _, tt := range []struct {
 		name      string
@@ -58,40 +59,40 @@ func TestUnmarshal(t *testing.T) {
 	}{
 		{
 			name:     "Slice Case (no trailing new line)",
-			rawValue: []byte("foo  123  1.2  bar  12345" + "\n" + "bar  321  2.1  foo  54321"),
+			rawValue: []byte("foo  123  1.2  bar  12345  baz" + "\n" + "bar  321  2.1  foo  54321  buz"),
 			target:   &[]allTypes{},
 			expected: &[]allTypes{
-				{"foo", 123, 1.2, EncodableString{"bar", nil}, uint(12345)},
-				{"bar", 321, 2.1, EncodableString{"foo", nil}, uint(54321)},
+				{"foo", 123, 1.2, EncodableString{"bar", nil}, uint(12345), EncodableFixedWidthString{"baz", nil}},
+				{"bar", 321, 2.1, EncodableString{"foo", nil}, uint(54321), EncodableFixedWidthString{"buz", nil}},
 			},
 			shouldErr: false,
 		},
 		{
 			name:     "Slice Case (trailing new line)",
-			rawValue: []byte("foo  123  1.2  bar  12345" + "\n" + "bar  321  2.1  foo  54321" + "\n"),
+			rawValue: []byte("foo  123  1.2  bar  12345  baz" + "\n" + "bar  321  2.1  foo  54321  buz" + "\n"),
 			target:   &[]allTypes{},
 			expected: &[]allTypes{
-				{"foo", 123, 1.2, EncodableString{"bar", nil}, uint(12345)},
-				{"bar", 321, 2.1, EncodableString{"foo", nil}, uint(54321)},
+				{"foo", 123, 1.2, EncodableString{"bar", nil}, uint(12345), EncodableFixedWidthString{"baz", nil}},
+				{"bar", 321, 2.1, EncodableString{"foo", nil}, uint(54321), EncodableFixedWidthString{"buz", nil}},
 			},
 			shouldErr: false,
 		},
 		{
 			name:     "Slice Case (blank line mid file)",
-			rawValue: []byte("foo  123  1.2  bar  12345" + "\n" + "\n" + "bar  321  2.1  foo  54321" + "\n"),
+			rawValue: []byte("foo  123  1.2  bar  12345  baz" + "\n" + "\n" + "bar  321  2.1  foo  54321  buz" + "\n"),
 			target:   &[]allTypes{},
 			expected: &[]allTypes{
-				{"foo", 123, 1.2, EncodableString{"bar", nil}, uint(12345)},
-				{"", 0, 0, EncodableString{"", nil}, uint(0)},
-				{"bar", 321, 2.1, EncodableString{"foo", nil}, uint(54321)},
+				{"foo", 123, 1.2, EncodableString{"bar", nil}, uint(12345), EncodableFixedWidthString{"baz", nil}},
+				{"", 0, 0, EncodableString{"", nil}, uint(0), EncodableFixedWidthString{"", nil}},
+				{"bar", 321, 2.1, EncodableString{"foo", nil}, uint(54321), EncodableFixedWidthString{"buz", nil}},
 			},
 			shouldErr: false,
 		},
 		{
 			name:      "Basic Struct Case",
-			rawValue:  []byte("foo  123  1.2  bar  12345"),
+			rawValue:  []byte("foo  123  1.2  bar  12345  baz"),
 			target:    &allTypes{},
-			expected:  &allTypes{"foo", 123, 1.2, EncodableString{"bar", nil}, uint(12345)},
+			expected:  &allTypes{"foo", 123, 1.2, EncodableString{"bar", nil}, uint(12345), EncodableFixedWidthString{"baz", nil}},
 			shouldErr: false,
 		},
 		{
@@ -403,10 +404,11 @@ func TestNewRawValue(t *testing.T) {
 func TestLineSeparator(t *testing.T) {
 	// allTypes contains a field with all current supported types.
 	type allTypes struct {
-		String          string          `fixed:"1,5"`
-		Int             int             `fixed:"6,10"`
-		Float           float64         `fixed:"11,15"`
-		TextUnmarshaler EncodableString `fixed:"16,20"`
+		String                    string                    `fixed:"1,5"`
+		Int                       int                       `fixed:"6,10"`
+		Float                     float64                   `fixed:"11,15"`
+		TextUnmarshaler           EncodableString           `fixed:"16,20"`
+		TextUnmarshalerFixedWidth EncodableFixedWidthString `fixed:"21,25"`
 	}
 	for _, tt := range []struct {
 		name           string
@@ -418,44 +420,44 @@ func TestLineSeparator(t *testing.T) {
 	}{
 		{
 			name:     "CR line endings",
-			rawValue: []byte("foo  123  1.2  bar" + "\n" + "bar  321  2.1  foo"),
+			rawValue: []byte("foo  123  1.2  bar  baz" + "\n" + "bar  321  2.1  foo  buz"),
 			target:   &[]allTypes{},
 			expected: &[]allTypes{
-				{"foo", 123, 1.2, EncodableString{"bar", nil}},
-				{"bar", 321, 2.1, EncodableString{"foo", nil}},
+				{"foo", 123, 1.2, EncodableString{"bar", nil}, EncodableFixedWidthString{"baz", nil}},
+				{"bar", 321, 2.1, EncodableString{"foo", nil}, EncodableFixedWidthString{"buz", nil}},
 			},
 			shouldErr:      false,
 			lineTerminator: []byte{},
 		},
 		{
 			name:     "CR line endings",
-			rawValue: []byte("f\ro  123  1.2  bar" + "\n" + "bar  321  2.1  foo"),
+			rawValue: []byte("f\ro  123  1.2  bar  baz" + "\n" + "bar  321  2.1  foo  buz"),
 			target:   &[]allTypes{},
 			expected: &[]allTypes{
-				{"f\ro", 123, 1.2, EncodableString{"bar", nil}},
-				{"bar", 321, 2.1, EncodableString{"foo", nil}},
+				{"f\ro", 123, 1.2, EncodableString{"bar", nil}, EncodableFixedWidthString{"baz", nil}},
+				{"bar", 321, 2.1, EncodableString{"foo", nil}, EncodableFixedWidthString{"buz", nil}},
 			},
 			shouldErr:      false,
 			lineTerminator: []byte("\n"),
 		},
 		{
 			name:     "CRLF line endings",
-			rawValue: []byte("f\no  123  1.2  bar" + "\r\n" + "bar  321  2.1  foo"),
+			rawValue: []byte("f\no  123  1.2  bar  baz" + "\r\n" + "bar  321  2.1  foo  buz"),
 			target:   &[]allTypes{},
 			expected: &[]allTypes{
-				{"f\no", 123, 1.2, EncodableString{"bar", nil}},
-				{"bar", 321, 2.1, EncodableString{"foo", nil}},
+				{"f\no", 123, 1.2, EncodableString{"bar", nil}, EncodableFixedWidthString{"baz", nil}},
+				{"bar", 321, 2.1, EncodableString{"foo", nil}, EncodableFixedWidthString{"buz", nil}},
 			},
 			shouldErr:      false,
 			lineTerminator: []byte("\r\n"),
 		},
 		{
 			name:     "LF line endings",
-			rawValue: []byte("f\no  123  1.2  bar" + "\r" + "bar  321  2.1  foo"),
+			rawValue: []byte("f\no  123  1.2  bar  baz" + "\r" + "bar  321  2.1  foo  buz"),
 			target:   &[]allTypes{},
 			expected: &[]allTypes{
-				{"f\no", 123, 1.2, EncodableString{"bar", nil}},
-				{"bar", 321, 2.1, EncodableString{"foo", nil}},
+				{"f\no", 123, 1.2, EncodableString{"bar", nil}, EncodableFixedWidthString{"baz", nil}},
+				{"bar", 321, 2.1, EncodableString{"foo", nil}, EncodableFixedWidthString{"buz", nil}},
 			},
 			shouldErr:      false,
 			lineTerminator: []byte("\r"),

@@ -136,6 +136,11 @@ func newValueEncoder(t reflect.Type) valueEncoder {
 	if t == nil {
 		return nilEncoder
 	}
+
+	if t.Implements(reflect.TypeOf(new(TextMarshalerFixedWidth)).Elem()) {
+		return textMarshalerFixedWidthEncoder
+	}
+
 	if t.Implements(reflect.TypeOf(new(encoding.TextMarshaler)).Elem()) {
 		return textMarshalerEncoder
 	}
@@ -209,6 +214,10 @@ func structEncoder(v reflect.Value) ([]byte, error) {
 
 func textMarshalerEncoder(v reflect.Value) ([]byte, error) {
 	return v.Interface().(encoding.TextMarshaler).MarshalText()
+}
+
+func textMarshalerFixedWidthEncoder(v reflect.Value) ([]byte, error) {
+	return v.Interface().(TextMarshalerFixedWidth).MarshalTextFixedWidth()
 }
 
 func ptrInterfaceEncoder(v reflect.Value) ([]byte, error) {

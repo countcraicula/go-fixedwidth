@@ -78,6 +78,7 @@ func TestMarshal(t *testing.T) {
 		{"invalid type", true, nil, true},
 		{"invalid type in struct", H{"foo", true}, nil, true},
 		{"marshal error", EncodableString{"", marshalError}, nil, true},
+		{"marshal error2", EncodableFixedWidthString{"", marshalError}, nil, true},
 		{"invalid tags", tagHelper, []byte("foo  "), false},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -208,9 +209,13 @@ func TestNewValueEncoder(t *testing.T) {
 		{"*int zero", intp(0), []byte("0"), false},
 		{"*int nil", nilInt, []byte(""), false},
 
-		{"TextUnmarshaler", EncodableString{"foo", nil}, []byte("foo"), false},
-		{"TextUnmarshaler interface", interface{}(EncodableString{"foo", nil}), []byte("foo"), false},
-		{"TextUnmarshaler error", EncodableString{"foo", errors.New("TextUnmarshaler error")}, []byte("foo"), true},
+		{"TextMarshaler", EncodableString{"foo", nil}, []byte("foo"), false},
+		{"TextMarshaler interface", interface{}(EncodableString{"foo", nil}), []byte("foo"), false},
+		{"TextMarshaler error", EncodableString{"foo", errors.New("TextUnmarshaler error")}, []byte("foo"), true},
+
+		{"TextMarshalerFixedWidth", EncodableFixedWidthString{"foo", nil}, []byte("foo"), false},
+		{"TextMarshalerFixedWidth interface", interface{}(EncodableFixedWidthString{"foo", nil}), []byte("foo"), false},
+		{"TextMarshalerFixedWidth error", EncodableFixedWidthString{"foo", errors.New("TextUnmarshalerFixedWidth error")}, []byte("foo"), true},
 
 		{"uint", uint(123), []byte("123"), false},
 		{"uint interface", interface{}(uint(123)), []byte("123"), false},
@@ -237,7 +242,7 @@ func TestEncoder_SetLineTerminator(t *testing.T) {
 	enc.SetLineTerminator([]byte{'\r', '\n'})
 
 	input := []interface{}{
-		EncodableString{"foo", nil},
+		EncodableFixedWidthString{"foo", nil},
 		EncodableString{"bar", nil},
 	}
 

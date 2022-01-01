@@ -106,7 +106,7 @@ func (d *Decoder) Decode(v interface{}) error {
 		return d.readLines(rv.Elem())
 	}
 
-	err, ok := d.readLine(rv)
+	ok, err := d.readLine(rv)
 	if d.done && err == nil && !ok {
 		// d.done means we've reached the end of the file. err == nil && !ok
 		// indicates that there was no data to read, so we propagate an io.EOF
@@ -120,7 +120,7 @@ func (d *Decoder) readLines(v reflect.Value) (err error) {
 	ct := v.Type().Elem()
 	for {
 		nv := reflect.New(ct).Elem()
-		err, ok := d.readLine(nv)
+		ok, err := d.readLine(nv)
 		if err != nil {
 			return err
 		}
@@ -207,11 +207,11 @@ func (d *Decoder) scan(data []byte, atEOF bool) (advance int, token []byte, err 
 	return 0, nil, nil
 }
 
-func (d *Decoder) readLine(v reflect.Value) (err error, ok bool) {
+func (d *Decoder) readLine(v reflect.Value) (ok bool, err error) {
 	ok = d.scanner.Scan()
 	if !ok {
 		d.done = true
-		return nil, false
+		return false, nil
 	}
 
 	line := string(d.scanner.Bytes())
@@ -222,12 +222,12 @@ func (d *Decoder) readLine(v reflect.Value) (err error, ok bool) {
 	}
 	t := v.Type()
 	if t == d.lastType {
-		return d.lastValuSetter(v, rawValue), true
+		return true, d.lastValuSetter(v, rawValue)
 	}
 	valueSetter := newValueSetter(t)
 	d.lastType = t
 	d.lastValuSetter = valueSetter
-	return valueSetter(v, rawValue), true
+	return true, valueSetter(v, rawValue)
 }
 
 func rawValueFromLine(value rawValue, startPos, endPos int, format format) rawValue {
@@ -281,8 +281,15 @@ func rawValueFromLine(value rawValue, startPos, endPos int, format format) rawVa
 type valueSetter func(v reflect.Value, raw rawValue) error
 
 var textUnmarshalerType = reflect.TypeOf(new(encoding.TextUnmarshaler)).Elem()
+var textUnmarshalerFixedWidthType = reflect.TypeOf(new(TextUnmarshalerFixedWidth)).Elem()
 
 func newValueSetter(t reflect.Type) valueSetter {
+	if t.Implements(textUnmarshalerFixedWidthType) {
+		return textUnmarshalerFixedWidthSetter(t, false)
+	}
+	if reflect.PtrTo(t).Implements(textUnmarshalerFixedWidthType) {
+		return textUnmarshalerFixedWidthSetter(t, true)
+	}
 	if t.Implements(textUnmarshalerType) {
 		return textUnmarshalerSetter(t, false)
 	}
@@ -336,6 +343,20 @@ func unknownSetter(v reflect.Value, raw rawValue) error {
 func nilSetter(v reflect.Value, _ rawValue) error {
 	v.Set(reflect.Zero(v.Type()))
 	return nil
+}
+
+func textUnmarshalerFixedWidthSetter(t reflect.Type, shouldAddr bool) valueSetter {
+
+	return func(v reflect.Value, raw rawValue) error {
+		if shouldAddr {
+			v = v.Addr()
+		}
+		// set to zero value if this is nil
+		if t.Kind() == reflect.Ptr && v.IsNil() {
+			v.Set(reflect.New(t.Elem()))
+		}
+		return v.Interface().(TextUnmarshalerFixedWidth).UnmarshalTextFixedWidth([]byte(raw.data))
+	}
 }
 
 func textUnmarshalerSetter(t reflect.Type, shouldAddr bool) valueSetter {

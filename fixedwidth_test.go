@@ -35,3 +35,21 @@ func (s *EncodableString) UnmarshalText(text []byte) error {
 func (s EncodableString) MarshalText() ([]byte, error) {
 	return []byte(s.S), s.Err
 }
+
+// EncodableFixedWidthString is a string that implements the encoding TextUnmarshalerFixedWidth and TextMarshalerFixedWidth interface.
+// This is useful for testing.
+type EncodableFixedWidthString struct {
+	S   string
+	Err error
+}
+
+// UnmarshalTextFixedWidth implements TextUnmarshalerFixedWidth.
+func (s *EncodableFixedWidthString) UnmarshalTextFixedWidth(text []byte) error {
+	s.S = string(text)
+	return s.Err
+}
+
+// MarshalTextFixedWidth implements TextUnmarshalerFixedWidth.
+func (s EncodableFixedWidthString) MarshalTextFixedWidth() ([]byte, error) {
+	return []byte(s.S), s.Err
+}
